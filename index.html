@@ -224,6 +224,82 @@ function parkedCar(x,z,rot=0,color=0x263746){
  for(const xx of [-1,1])for(const zz of [-1.45,1.45]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.24,16),rubber);wh.rotation.z=Math.PI/2;wh.position.set(xx*1.05,-.12,zz);g.add(wh)}
 }
 for(let i=-3;i<=3;i++)for(let z=-3;z<=3;z++)if((i+z)%3===0)parkedCar(i*92+18,z*92+29,0,carColors[Math.abs(i+z)%4]);
+
+// PROJECT VICE COASTAL STRIP — a driveable 3D recreation of the reference mood.
+// Ocean on the left, promenade and palms beside a broad neon boulevard,
+// Art Deco hotels on the right. Everything below is real Three.js geometry.
+scene.background=new THREE.Color(0x9a668d);
+scene.fog=new THREE.FogExp2(0x9a668d,.00072);
+renderer.toneMappingExposure=1.28;
+sun.color.setHex(0xffb27d);sun.intensity=3.6;sun.position.set(-210,145,-130);
+scene.add(new THREE.AmbientLight(0xffa6a0,.48));
+const decoCream=mat(0xe7c7a9,.78),decoPink=mat(0xd98c91,.72),decoMint=mat(0x9bc7bd,.68),decoWhite=mat(0xf0e4d2,.75);
+const decoTrim=mat(0xf3d6b3,.48,.12),balconyMat=mat(0x35454b,.55,.35);
+const neonPink=new THREE.MeshStandardMaterial({color:0xff58d5,emissive:0xff22bd,emissiveIntensity:2.7,roughness:.25});
+const neonCyan=new THREE.MeshStandardMaterial({color:0x50f4ff,emissive:0x19cce8,emissiveIntensity:2.5,roughness:.25});
+const warmWindow=new THREE.MeshStandardMaterial({color:0xffdca0,emissive:0xffa84d,emissiveIntensity:.65});
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(470,1250),new THREE.MeshStandardMaterial({color:0x176b83,roughness:.2,metalness:.25}));
+ocean.rotation.x=-Math.PI/2;ocean.position.set(-300,-.22,0);scene.add(ocean);
+const beach=new THREE.Mesh(new THREE.PlaneGeometry(110,1250),mat(0xd8b88d,.95));beach.rotation.x=-Math.PI/2;beach.position.set(-65,-.08,0);scene.add(beach);
+const seaWall=box(2,2,1250,mat(0xb7a58d),-120,.5,0);
+box(22,.22,1250,mat(0xc8b99e),-105,.05,0); // broad seaside promenade
+box(3,.5,1250,mat(0xeee0c8),-93,.18,0);
+box(58,.16,1250,mat(0x25282e,.65),0,.03,0); // main boulevard
+box(3,.28,1250,mat(0xd8c7ad),-31,.12,0);box(3,.28,1250,mat(0xd8c7ad),31,.12,0);
+for(let z=-590;z<610;z+=14){box(.18,.025,6,mat(0xf3d7a0),0,.13,z)}
+for(let z=-600;z<=600;z+=36){box(.18,.03,8,mat(0xe8e0cb),-15,.13,z);box(.18,.03,8,mat(0xe8e0cb),15,.13,z)}
+// A custom stepped Art Deco hotel with real window bays, balconies and neon.
+function neonSign(textValue,color,x,y,z,rotation=0){
+ const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');
+ ctx.clearRect(0,0,512,128);ctx.font='900 76px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.shadowColor=color===neonPink?'#ff20c9':'#26eaff';ctx.shadowBlur=28;ctx.fillStyle=color===neonPink?'#ffd8f5':'#d7ffff';ctx.fillText(textValue,256,66);
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+ const plane=new THREE.Mesh(new THREE.PlaneGeometry(11,2.75),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide}));
+ plane.position.set(x,y,z);plane.rotation.y=rotation;scene.add(plane);
+ const frame=new THREE.Mesh(new THREE.BoxGeometry(11.6,3.1,.24),color);frame.position.set(x,y,z-.16);frame.rotation.y=rotation;scene.add(frame);plane.position.z+=.14;
+}
+function decoHotel(x,z,w,d,h,paint,sign){
+ buildingColliders.push({x,z,halfW:w/2+2,halfD:d/2+2});
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),paint);body.position.y=h/2;body.castShadow=true;body.receiveShadow=true;g.add(body);
+ const base=new THREE.Mesh(new THREE.BoxGeometry(w+2,3,d+2),decoWhite);base.position.y=1.5;g.add(base);
+ for(let level=3;level<h-2;level+=4.2){
+  const belt=new THREE.Mesh(new THREE.BoxGeometry(w+.8,.24,d+.8),decoTrim);belt.position.y=level;g.add(belt);
+  for(let xx=-w/2+2;xx<w/2-1;xx+=4.2){
+   const win=new THREE.Mesh(new THREE.BoxGeometry(2.25,2.5,.13),warmWindow);win.position.set(xx,level+1.35,d/2+.08);g.add(win);
+   const sill=new THREE.Mesh(new THREE.BoxGeometry(2.8,.18,.75),decoWhite);sill.position.set(xx,level,d/2+.35);g.add(sill);
+   const rail=new THREE.Mesh(new THREE.BoxGeometry(2.7,.12,.85),balconyMat);rail.position.set(xx,level+.75,d/2+.43);g.add(rail);
+  }
+ }
+ // stepped crown and rooftop pavilion
+ const crown=new THREE.Mesh(new THREE.BoxGeometry(w*.78,5,d*.78),decoWhite);crown.position.y=h+2.5;g.add(crown);
+ const cap=new THREE.Mesh(new THREE.BoxGeometry(w*.52,4,d*.52),paint);cap.position.y=h+7;g.add(cap);
+ const vertical=new THREE.Mesh(new THREE.BoxGeometry(1.1,h*.55,.24),neonPink);vertical.position.set(-w*.34,h*.56,d/2+.2);g.add(vertical);
+ if(sign)neonSign(sign,sign==='VICE'?neonCyan:neonPink,x,h*.67,z+d/2+.7);
+ const awning=new THREE.Mesh(new THREE.BoxGeometry(w*.72,1.1,3),decoPink);awning.position.set(0,4,d/2+1.4);g.add(awning);
+ for(let a=-w*.3;a<=w*.3;a+=w*.15){const post=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,3,8),decoTrim);post.position.set(a,1.5,d/2+2);g.add(post)}
+}
+decoHotel(92,-190,34,34,34,decoPink,'OCEAN VIEW');
+decoHotel(100,-85,30,30,26,decoMint,'VICE');
+decoHotel(94,25,38,34,42,decoCream,'HOTEL');
+decoHotel(105,145,32,32,30,decoPink,'PALMS');
+decoHotel(98,260,36,34,38,decoMint,'OCEAN');
+decoHotel(170,-130,42,38,72,paletteMaterials[1],null);
+decoHotel(170,40,38,36,58,paletteMaterials[3],null);
+decoHotel(168,220,44,38,82,paletteMaterials[2],null);
+// Promenade palms, benches, beach lamps and lit cafe frontage.
+for(let z=-570;z<=570;z+=34){palm(-83,z,.95);palm(76,z+14,.78)}
+for(let z=-540;z<=540;z+=54){
+ const pole=box(.22,8,.22,metal,-72,4,z);const arm=box(2,.18,.18,metal,-71,7.7,z);
+ const bulb=new THREE.Mesh(new THREE.SphereGeometry(.32,12,10),lampmat);bulb.position.set(-70,7.5,z);scene.add(bulb);
+ const bench=box(3,.22,.8,mat(0x76553d),-101,.65,z+9);box(3,.9,.16,mat(0x76553d),-101,1.1,z+9.3);
+}
+// Neon reflections and warm storefront lighting are represented by emissive geometry.
+for(let z=-210;z<=300;z+=105){
+ const glow=new THREE.PointLight(0xff48c9,42,48,2);glow.position.set(86,10,z);scene.add(glow);
+ const cyanGlow=new THREE.PointLight(0x36dfff,24,35,2);cyanGlow.position.set(-40,6,z+35);scene.add(cyanGlow);
+}
+
 // Player sports car
 const car=new THREE.Group();scene.add(car);
 const wheelMeshes=[];car.position.set(0,.55,8);
