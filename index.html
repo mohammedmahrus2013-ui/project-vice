@@ -106,36 +106,98 @@ function parkedCar(x,z,rot=0,color=0x263746){
 }
 for(let i=-3;i<=3;i++)for(let z=-3;z<=3;z++)if((i+z)%3===0)parkedCar(i*92+18,z*92+29,0,carColors[Math.abs(i+z)%4]);
 // Player sports car
-const car=new THREE.Group();scene.add(car);car.position.set(0,.55,8);
+const car=new THREE.Group();scene.add(car);
+const wheelMeshes=[];car.position.set(0,.55,8);
 const red=mat(0xb51f29,.25,.72),dark=mat(0x10171b,.3,.55),rubber=mat(0x090b0d,.92),rim=mat(0xb6c0c4,.2,.85),head= new THREE.MeshStandardMaterial({color:0xfff0d2,emissive:0xffd99b,emissiveIntensity:1.4});
 box(2.35,.58,4.8,red,0,0,0,car);box(2.05,.28,1.5,red,0,.34,1.55,car);box(1.85,.72,2.15,glass,0,.58,-.1,car);
 box(2.2,.13,1.05,dark,0,-.22,-1.85,car);box(.38,.16,.12,head,-.78,.03,2.42,car);box(.38,.16,.12,head,.78,.03,2.42,car);
 for(const x of [-1,1])for(const z of [-1.55,1.55]){
- const wheel=new THREE.Group();wheel.position.set(x*1.15,-.16,z);car.add(wheel);
+ const wheel=new THREE.Group();wheel.position.set(x*1.15,-.16,z);car.add(wheel);wheelMeshes.push(wheel);
  const tire=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.28,24),rubber);tire.rotation.z=Math.PI/2;tire.castShadow=true;wheel.add(tire);
  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.23,.23,.3,16),rim);hub.rotation.z=Math.PI/2;wheel.add(hub);
  wheel.userData.spin=true;
 }
 const spoiler=box(2.1,.12,.45,dark,0,.62,-2.12,car);box(.12,.48,.12,dark,-.78,.38,-2.12,car);box(.12,.48,.12,dark,.78,.38,-2.12,car);
 car.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
-// controls + vehicle physics
-const keys={};addEventListener('keydown',e=>{keys[e.code]=true});addEventListener('keyup',e=>{keys[e.code]=false});
-let speed=0,heading=0;const clock=new THREE.Clock();
-const camTarget=new THREE.Vector3(),desiredCam=new THREE.Vector3();
-camera.position.set(0,5,18);
+// VICE vehicle dynamics: fixed-step integration, grip, braking and handbrake drift
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault()},{passive:false});
+addEventListener('keyup',e=>{keys[e.code]=false});
+const clock=new THREE.Clock();
+const camTarget=new THREE.Vector3(),desiredCam=new THREE.Vector3(),cameraLook=new THREE.Vector3();
+const velocity=new THREE.Vector3();
+let heading=0,steerAngle=0,boostHeat=0,accumulator=0;
+const FIXED_DT=1/120;
+const maxForward=boost=>boost?58:43;
+function physicsStep(dt){
+ const throttle=(keys.KeyW||keys.ArrowUp)?1:0;
+ const brake=(keys.KeyS||keys.ArrowDown)?1:0;
+ const left=(keys.KeyA||keys.ArrowLeft)?1:0;
+ const right=(keys.KeyD||keys.ArrowRight)?1:0;
+ const handbrake=!!keys.Space,boost=!!(keys.ShiftLeft||keys.ShiftRight);
+ const steerInput=left-right;
+ const forward=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading));
+ const lateral=new THREE.Vector3(Math.cos(heading),0,-Math.sin(heading));
+ let longitudinal=velocity.dot(forward);
+ let sideways=velocity.dot(lateral);
+ const speedAbs=Math.abs(longitudinal);
+ // Engine torque and progressive braking
+ const engineForce=(boost?37:24)*throttle;
+ longitudinal+=engineForce*dt;
+ if(brake){
+   if(Math.abs(longitudinal)>1) longitudinal-=Math.sign(longitudinal)*Math.min(Math.abs(longitudinal),42*dt);
+   else longitudinal-=16*dt;
+ }
+ // Rolling resistance and aerodynamic drag
+ longitudinal*=Math.exp(-(0.42+speedAbs*0.006)*dt);
+ longitudinal=THREE.MathUtils.clamp(longitudinal,-17,maxForward(boost));
+ // Tire grip: handbrake releases rear grip for controllable slides
+ const grip=handbrake?1.25:8.8+Math.min(speedAbs*.055,2.2);
+ sideways*=Math.exp(-grip*dt);
+ // Steering builds with speed, with reduced authority at a standstill
+ const steerTarget=steerInput*(0.62+Math.min(speedAbs/28,1.15));
+ steerAngle=THREE.MathUtils.damp(steerAngle,steerTarget,handbrake?5.2:8.5,dt);
+ const direction=Math.sign(longitudinal||1);
+ const yawRate=steerAngle*(0.12+Math.min(speedAbs/17,1.55))*direction*(handbrake?1.42:1);
+ heading+=yawRate*dt;
+ // Handbrake adds a little rear rotation; countersteer remains possible
+ if(handbrake&&speedAbs>8&&Math.abs(steerInput)>.1) sideways+=-steerInput*speedAbs*.12*dt;
+ const fwd=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading));
+ const side=new THREE.Vector3(Math.cos(heading),0,-Math.sin(heading));
+ velocity.copy(fwd.multiplyScalar(longitudinal).add(side.multiplyScalar(sideways)));
+ car.position.addScaledVector(velocity,dt);
+ car.rotation.y=heading;
+ // Basic suspension response and wheel rotation
+ const bounce=Math.sin(clock.elapsedTime*18+speedAbs*.12)*Math.min(speedAbs/100,.025);
+ car.position.y=THREE.MathUtils.damp(car.position.y,.55+bounce,10,dt);
+ for(const wheel of wheelMeshes){
+   wheel.children[0].rotation.x-=longitudinal*dt/0.43;
+   wheel.rotation.y=wheel.position.z>0?steerAngle*.42:0;
+ }
+ // Keep the player in the playable city bounds
+ car.position.x=THREE.MathUtils.clamp(car.position.x,-405,405);
+ car.position.z=THREE.MathUtils.clamp(car.position.z,-405,405);
+}
 function animate(){
- requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);
- const forward=keys.KeyW||keys.ArrowUp,back=keys.KeyS||keys.ArrowDown,left=keys.KeyA||keys.ArrowLeft,right=keys.KeyD||keys.ArrowRight,boost=keys.ShiftLeft||keys.ShiftRight;
- if(forward)speed+= (boost?30:19)*dt;else if(back)speed-=26*dt;else speed*=Math.pow(.985,dt*60);
- speed=THREE.MathUtils.clamp(speed,-18,boost?58:43);
- const steer=(left?1:0)-(right?1:0);
- heading+=steer*dt*(.85+Math.min(Math.abs(speed)/22,1.4))*Math.sign(speed||1);
- car.rotation.y=heading;car.position.x+=Math.sin(heading)*speed*dt;car.position.z+=Math.cos(heading)*speed*dt;
- // follow camera, smooth cinematic spring
- const behind=new THREE.Vector3(-Math.sin(heading)*10,5.4,-Math.cos(heading)*10);
- desiredCam.copy(car.position).add(behind);camera.position.lerp(desiredCam,1-Math.pow(.001,dt));
- camTarget.set(car.position.x,1.2,car.position.z);camera.lookAt(camTarget);
- document.getElementById('speed').textContent=String(Math.round(Math.abs(speed)*3.6)).padStart(3,'0');
+ requestAnimationFrame(animate);
+ const frameDt=Math.min(clock.getDelta(),.05);
+ accumulator+=frameDt;
+ let steps=0;
+ while(accumulator>=FIXED_DT&&steps<8){physicsStep(FIXED_DT);accumulator-=FIXED_DT;steps++}
+ if(steps===8)accumulator=0;
+ const speed=velocity.length();
+ const forward=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading));
+ const lookAhead=THREE.MathUtils.clamp(speed*.13,2,9);
+ const behind=new THREE.Vector3(-Math.sin(heading)*10,5.2+Math.min(speed*.018,1.4),-Math.cos(heading)*10);
+ desiredCam.copy(car.position).add(behind);
+ camera.position.lerp(desiredCam,1-Math.exp(-4.8*frameDt));
+ cameraLook.copy(car.position).addScaledVector(forward,lookAhead);
+ cameraLook.y=1.25;
+ camTarget.lerp(cameraLook,1-Math.exp(-6*frameDt));
+ camera.lookAt(camTarget);
+ camera.fov=THREE.MathUtils.damp(camera.fov,66+Math.min(speed*.12,8),3,frameDt);
+ camera.updateProjectionMatrix();
+ document.getElementById('speed').textContent=String(Math.round(speed*3.6)).padStart(3,'0');
  water.position.x=Math.sin(clock.elapsedTime*.12)*2;
  renderer.render(scene,camera);
 }
