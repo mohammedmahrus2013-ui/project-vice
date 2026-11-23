@@ -67,6 +67,30 @@
 </head>
 <body>
 <div id="intro"><div class="intro-core"><div class="intro-mark">V</div><div class="intro-title">PROJECT <span>VICE</span></div><div class="intro-sub">A NEW CITY. A NEW STORY.</div><div class="intro-rule"></div><div class="intro-credit">AN ORIGINAL OPEN-WORLD EXPERIENCE</div></div></div>
+<script>
+// Keep the brand intro independent from Three.js startup. Even if WebGL or a CDN fails,
+// the logo must never trap the player on the first screen.
+(function(){
+ const intro=document.getElementById('intro');
+ window.setTimeout(function(){
+  if(!intro) return;
+  intro.style.opacity='0'; intro.style.visibility='hidden';
+  window.setTimeout(function(){intro.remove();},900);
+ },2600);
+ window.addEventListener('error',function(event){
+  const status=document.getElementById('load-status');
+  const tip=document.getElementById('load-tip');
+  if(status) status.textContent='GAME STARTUP ERROR — CHECK CONNECTION AND RELOAD';
+  if(tip) tip.textContent=(event.message||'A game component failed to load.').slice(0,180);
+ });
+ window.addEventListener('unhandledrejection',function(event){
+  const status=document.getElementById('load-status');
+  const tip=document.getElementById('load-tip');
+  if(status) status.textContent='GAME STARTUP ERROR — CHECK CONNECTION AND RELOAD';
+  if(tip) tip.textContent=String(event.reason||'A game component failed to load.').slice(0,180);
+ });
+})();
+</script>
 <div id="hud"><div id="brand">PROJECT <span>VICE</span><div id="sub">COASTAL CITY • OPEN WORLD</div></div><div id="crosshair"></div><div id="help">W / ↑ ACCELERATE &nbsp; S / ↓ BRAKE<br>A / ← STEER &nbsp; D / → STEER<br>SPACE HANDBRAKE &nbsp; SHIFT BOOST</div><div id="speedbox"><div id="speed">000</div><div class="unit">KM/H</div></div></div>
 <div id="loading">
 <div class="load-skyline"></div>
@@ -141,8 +165,6 @@ const loadingProfiles=[
  {role:'THE NIGHT SHIFT',name:'DARIUS<br>KING',bio:'Calm under pressure and always watching the road ahead. Darius has unfinished business in this city.',tip:'TIP: Ease off the throttle before sharp turns to keep traction.'}
 ];
 let profileIndex=0,loadProgress=8;
-const introScreen=document.getElementById('intro');
-setTimeout(()=>{if(introScreen){introScreen.style.opacity='0';introScreen.style.visibility='hidden';setTimeout(()=>introScreen.remove(),850)}},2600);
 const profileTimer=setInterval(()=>{
  profileIndex=(profileIndex+1)%loadingProfiles.length;
  const p=loadingProfiles[profileIndex];
