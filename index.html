@@ -116,6 +116,29 @@ function building(x,z,w,d,h,idx){
  for(let k=0;k<3;k++)box(1.2,.5,1.2,mat(0x4d5b5d),x+w*.2+k*1.8,h+1,z-d*.2);
 }
 let seed=17;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
+// Cinematic rotating protagonist showcase while the world initialises.
+const loadingProfiles=[
+ {role:'THE GETAWAY DRIVER',name:'MARCUS<br>VALE',bio:'Every street has a story. Marcus knows the fastest way through all of them — and the price of taking the wrong turn.',tip:'TIP: Use the handbrake to swing through tight corners.'},
+ {role:'THE STREETWISE FIXER',name:'ELENA<br>CRUZ',bio:'A brilliant mechanic with a talent for impossible escapes. If it has an engine, Elena can make it move.',tip:'TIP: Build speed before activating boost on a straight road.'},
+ {role:'THE NIGHT SHIFT',name:'DARIUS<br>KING',bio:'Calm under pressure and always watching the road ahead. Darius has unfinished business in this city.',tip:'TIP: Ease off the throttle before sharp turns to keep traction.'}
+];
+let profileIndex=0,loadProgress=8;
+const profileTimer=setInterval(()=>{
+ profileIndex=(profileIndex+1)%loadingProfiles.length;
+ const p=loadingProfiles[profileIndex];
+ document.getElementById('load-role').textContent=p.role;
+ document.getElementById('load-name').innerHTML=p.name;
+ document.getElementById('load-bio').textContent=p.bio;
+ document.getElementById('load-tip').textContent=p.tip;
+ document.querySelectorAll('.load-person').forEach((el,i)=>el.classList.toggle('active',i===profileIndex));
+},4200);
+const progressTimer=setInterval(()=>{
+ loadProgress=Math.min(94,loadProgress+Math.random()*7+2);
+ const bar=document.getElementById('load-progress');if(bar)bar.style.width=loadProgress+'%';
+ const status=document.getElementById('load-status');if(status)status.textContent=loadProgress<35?'GENERATING THE STREETS...':loadProgress<65?'SETTING THE SCENE...':'STARTING YOUR ENGINE...';
+},650);
+setTimeout(()=>{clearInterval(profileTimer);clearInterval(progressTimer);const bar=document.getElementById('load-progress');if(bar)bar.style.width='100%';const status=document.getElementById('load-status');if(status)status.textContent='CITY READY';setTimeout(()=>{const l=document.getElementById('loading');l.style.opacity='0';setTimeout(()=>l.remove(),950)},500)},2200);
+
 async function buildCity(){
 for(let gx=-4;gx<4;gx++){for(let gz=-4;gz<4;gz++){
  const cx=gx*92+46,cz=gz*92+46;
@@ -126,8 +149,8 @@ for(let gx=-4;gx<4;gx++){for(let gz=-4;gz<4;gz++){
   const x=cx+(rand()-.5)*42,z=cz+(rand()-.5)*42;
   building(x,z,w,d,h,Math.floor(rand()*palettes.length));
  }
-}
- } await new Promise(resolve=>setTimeout(resolve,0));
+ await new Promise(resolve=>requestAnimationFrame(resolve));
+ }
 }
 await buildCity();
 
@@ -267,26 +290,8 @@ function animate(){
 }
 animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.8))});
-// Cinematic rotating protagonist showcase while the world initialises.
-const loadingProfiles=[
- {role:'THE GETAWAY DRIVER',name:'MARCUS<br>VALE',bio:'Every street has a story. Marcus knows the fastest way through all of them — and the price of taking the wrong turn.',tip:'TIP: Use the handbrake to swing through tight corners.'},
- {role:'THE STREETWISE FIXER',name:'ELENA<br>CRUZ',bio:'A brilliant mechanic with a talent for impossible escapes. If it has an engine, Elena can make it move.',tip:'TIP: Build speed before activating boost on a straight road.'},
- {role:'THE NIGHT SHIFT',name:'DARIUS<br>KING',bio:'Calm under pressure and always watching the road ahead. Darius has unfinished business in this city.',tip:'TIP: Ease off the throttle before sharp turns to keep traction.'}
-];
-let profileIndex=0,loadProgress=8;
-const profileTimer=setInterval(()=>{
- profileIndex=(profileIndex+1)%loadingProfiles.length;
- const p=loadingProfiles[profileIndex];
- document.getElementById('load-role').textContent=p.role;
- document.getElementById('load-name').innerHTML=p.name;
- document.getElementById('load-bio').textContent=p.bio;
- document.getElementById('load-tip').textContent=p.tip;
- document.querySelectorAll('.load-person').forEach((el,i)=>el.classList.toggle('active',i===profileIndex));
-},4200);
-const progressTimer=setInterval(()=>{
- loadProgress=Math.min(94,loadProgress+Math.random()*7+2);
- const bar=document.getElementById('load-progress');if(bar)bar.style.width=loadProgress+'%';
- const status=document.getElementById('load-status');if(status)status.textContent=loadProgress<35?'GENERATING THE STREETS...':loadProgress<65?'SETTING THE SCENE...':'STARTING YOUR ENGINE...';
-},650);
-setTimeout(()=>{clearInterval(profileTimer);clearInterval(progressTimer);const bar=document.getElementById('load-progress');if(bar)bar.style.width='100%';const status=document.getElementById('load-status');if(status)status.textContent='CITY READY';setTimeout(()=>{const l=document.getElementById('loading');l.style.opacity='0';setTimeout(()=>l.remove(),950)},500)},2200);
+clearInterval(profileTimer);clearInterval(progressTimer);
+const finalBar=document.getElementById('load-progress');if(finalBar)finalBar.style.width='100%';
+const finalStatus=document.getElementById('load-status');if(finalStatus)finalStatus.textContent='CITY READY';
+setTimeout(()=>{const l=document.getElementById('loading');l.style.opacity='0';setTimeout(()=>l.remove(),950)},650);
 </script></body></html>
