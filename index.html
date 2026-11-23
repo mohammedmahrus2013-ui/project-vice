@@ -13,6 +13,20 @@
 #speed{font-size:54px;font-weight:800;line-height:1}.unit{font-size:11px;letter-spacing:3px;color:#9ed9d7}
 #help{position:absolute;left:28px;bottom:28px;font-size:11px;line-height:1.8;color:#d4e5e5;text-shadow:0 2px 8px #000}
 #crosshair{position:absolute;left:50%;top:50%;width:4px;height:4px;border-radius:50%;background:#fff;opacity:.3}
+
+#intro{position:fixed;inset:0;z-index:40;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 46%,#173847 0%,#09141e 48%,#03070b 100%);color:#fff;transition:opacity .8s ease,visibility .8s}
+#intro:before,#intro:after{content:"";position:absolute;width:62vmin;height:62vmin;border:1px solid rgba(105,220,215,.16);border-radius:50%;animation:introOrbit 9s linear infinite}
+#intro:after{width:78vmin;height:78vmin;border-color:rgba(233,161,111,.12);animation-direction:reverse}
+.intro-core{position:relative;z-index:1;text-align:center;animation:introReveal 1.3s cubic-bezier(.16,1,.3,1) both}
+.intro-mark{width:92px;height:92px;margin:0 auto 25px;border:1px solid rgba(108,226,220,.75);border-radius:50%;display:grid;place-items:center;box-shadow:0 0 55px rgba(93,226,220,.18),inset 0 0 28px rgba(93,226,220,.12);font-size:34px;font-weight:950;letter-spacing:-4px;color:#8de8e1}
+.intro-title{font-size:clamp(30px,6vw,66px);font-weight:950;letter-spacing:.28em;padding-left:.28em;text-shadow:0 8px 35px #000}
+.intro-title span{color:#e9a16f}.intro-sub{font-size:9px;letter-spacing:.48em;color:#a9c3c9;margin-top:17px;padding-left:.48em}
+.intro-rule{width:90px;height:2px;margin:27px auto;background:linear-gradient(90deg,transparent,#6de0d8,transparent);animation:introLine 1.8s ease-in-out infinite}
+.intro-credit{font-size:8px;letter-spacing:.34em;color:#718d96}
+@keyframes introOrbit{to{transform:rotate(360deg)}}
+@keyframes introReveal{from{opacity:0;transform:translateY(18px) scale(.96);filter:blur(8px)}to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes introLine{50%{transform:scaleX(1.7);opacity:.55}}
+
 #loading{position:fixed;inset:0;z-index:20;overflow:hidden;background:#080d13;color:#fff;font-weight:800;letter-spacing:2px;transition:opacity .9s}
 #loading:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 72% 35%,rgba(209,116,69,.35),transparent 38%),linear-gradient(110deg,#07131d 0%,#152d3b 48%,#422d2b 100%)}
 .load-skyline{position:absolute;inset:0;opacity:.42;background:linear-gradient(transparent 65%,#070b10 65%),repeating-linear-gradient(90deg,transparent 0 5%,rgba(3,8,13,.9) 5.2% 6.2%,transparent 6.4% 9%);clip-path:polygon(0 38%,8% 38%,8% 22%,14% 22%,14% 43%,20% 43%,20% 16%,28% 16%,28% 39%,35% 39%,35% 28%,42% 28%,42% 47%,51% 47%,51% 20%,59% 20%,59% 40%,67% 40%,67% 12%,75% 12%,75% 38%,83% 38%,83% 25%,91% 25%,91% 43%,100% 43%,100% 100%,0 100%)}
@@ -52,6 +66,7 @@
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js"}}</script>
 </head>
 <body>
+<div id="intro"><div class="intro-core"><div class="intro-mark">V</div><div class="intro-title">PROJECT <span>VICE</span></div><div class="intro-sub">A NEW CITY. A NEW STORY.</div><div class="intro-rule"></div><div class="intro-credit">AN ORIGINAL OPEN-WORLD EXPERIENCE</div></div></div>
 <div id="hud"><div id="brand">PROJECT <span>VICE</span><div id="sub">COASTAL CITY • OPEN WORLD</div></div><div id="crosshair"></div><div id="help">W / ↑ ACCELERATE &nbsp; S / ↓ BRAKE<br>A / ← STEER &nbsp; D / → STEER<br>SPACE HANDBRAKE &nbsp; SHIFT BOOST</div><div id="speedbox"><div id="speed">000</div><div class="unit">KM/H</div></div></div>
 <div id="loading">
 <div class="load-skyline"></div>
@@ -72,12 +87,12 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x8ab9c8);scene.fog=new THREE.FogExp2(0x9bbfc6,.00145);
 const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,1800);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.35));
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.15));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 document.body.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xc9efff,0x35433c,2.0));
-const sun=new THREE.DirectionalLight(0xffe2bd,3.1);sun.position.set(-180,260,130);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-260;sun.shadow.camera.right=260;sun.shadow.camera.top=260;sun.shadow.camera.bottom=-260;sun.shadow.bias=-.00015;scene.add(sun);
+const sun=new THREE.DirectionalLight(0xffe2bd,3.1);sun.position.set(-180,260,130);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-260;sun.shadow.camera.right=260;sun.shadow.camera.top=260;sun.shadow.camera.bottom=-260;sun.shadow.bias=-.00015;scene.add(sun);
 const mat=(c,r=.8,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
 const asphalt=mat(0x252d32,.96),sidewalk=mat(0x9b9b91),concrete=mat(0xc2b9a6),glass=mat(0x315363,.24,.55),white=mat(0xe8e5d9),yellow=mat(0xe7c56a),green=mat(0x315c4a),trunk=mat(0x76543a);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(1800,1800),mat(0x6d8c78));ground.rotation.x=-Math.PI/2;ground.position.y=-.18;ground.receiveShadow=true;scene.add(ground);
@@ -96,7 +111,7 @@ const palettes=[0xd0c2a8,0x9caeb0,0xc5b7a4,0x8c9a9a,0xd7d0bd,0x9babae,0xb7a58e];
 const buildingColliders=[];
 const paletteMaterials=palettes.map(c=>mat(c,.82));
 const podiumMat=mat(0x777d78),floorLineMat=mat(0x6d7778),roofMat=mat(0x777d7a),roofCoreMat=mat(0x777e7b),roofDetailMat=mat(0x4d5b5d);
-const windowInstances=new THREE.InstancedMesh(new THREE.BoxGeometry(1.65,1.65,.08),glass,30000);
+const windowInstances=new THREE.InstancedMesh(new THREE.BoxGeometry(1.65,1.65,.08),glass,14000);
 windowInstances.count=0;windowInstances.castShadow=false;windowInstances.receiveShadow=false;scene.add(windowInstances);
 const windowDummy=new THREE.Object3D();let windowCount=0;
 function addWindow(x,y,z){
@@ -109,8 +124,8 @@ function building(x,z,w,d,h,idx){
  const mainBody=box(w,h,d,paletteMaterials[idx%paletteMaterials.length],x,h/2,z);mainBody.castShadow=true;
  box(w+1,2,d+1,podiumMat,x,1,z);
  for(let y=4;y<h-1;y+=8)box(w+.12,.1,d+.12,floorLineMat,x,y,z);
- for(let y=2.4;y<h-1;y+=3.8){
-  for(let xx=-w/2+2;xx<w/2-1;xx+=3.8){
+ for(let y=2.4;y<h-1;y+=5.2){
+  for(let xx=-w/2+2;xx<w/2-1;xx+=5.2){
    addWindow(x+xx,y,z+d/2+.045);addWindow(x+xx,y,z-d/2-.045);
   }
  }
@@ -126,6 +141,8 @@ const loadingProfiles=[
  {role:'THE NIGHT SHIFT',name:'DARIUS<br>KING',bio:'Calm under pressure and always watching the road ahead. Darius has unfinished business in this city.',tip:'TIP: Ease off the throttle before sharp turns to keep traction.'}
 ];
 let profileIndex=0,loadProgress=8;
+const introScreen=document.getElementById('intro');
+setTimeout(()=>{if(introScreen){introScreen.style.opacity='0';introScreen.style.visibility='hidden';setTimeout(()=>introScreen.remove(),850)}},2600);
 const profileTimer=setInterval(()=>{
  profileIndex=(profileIndex+1)%loadingProfiles.length;
  const p=loadingProfiles[profileIndex];
@@ -146,7 +163,7 @@ async function buildCity(){
 for(let gx=-4;gx<4;gx++){for(let gz=-4;gz<4;gz++){
  const cx=gx*92+46,cz=gz*92+46;
  if(Math.abs(cx)<65&&Math.abs(cz)<65)continue;
- const count=2+Math.floor(rand()*3);
+ const count=1+Math.floor(rand()*2);
  for(let n=0;n<count;n++){
   const w=18+rand()*23,d=18+rand()*22,h=14+Math.pow(rand(),1.8)*92;
   const x=cx+(rand()-.5)*42,z=cz+(rand()-.5)*42;
