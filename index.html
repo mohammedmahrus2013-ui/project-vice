@@ -48,7 +48,9 @@ for(let i=-4;i<=4;i++){
 for(let i=-4;i<=4;i++)for(let z=-400;z<420;z+=18){box(.22,.025,7,yellow,i*92,.035,z);box(7,.025,.22,white,z,.035,i*92);}
 // urban blocks with varied towers, podiums, balconies and window bands
 const palettes=[0xd0c2a8,0x9caeb0,0xc5b7a4,0x8c9a9a,0xd7d0bd,0x9babae,0xb7a58e];
+const buildingColliders=[];
 function building(x,z,w,d,h,idx){
+ buildingColliders.push({x,z,halfW:w/2+1.8,halfD:d/2+2.8});
  const baseMat=mat(palettes[idx%palettes.length],.82);
  box(w,h,d,baseMat,x,h/2,z);
  // podium
@@ -166,6 +168,18 @@ function physicsStep(dt){
  const side=new THREE.Vector3(Math.cos(heading),0,-Math.sin(heading));
  velocity.copy(fwd.multiplyScalar(longitudinal).add(side.multiplyScalar(sideways)));
  car.position.addScaledVector(velocity,dt);
+ // Simple vehicle-vs-building collision: keep the car outside solid building footprints
+ for(const b of buildingColliders){
+   const dx=car.position.x-b.x,dz=car.position.z-b.z;
+   const px=b.halfW+1.25-Math.abs(dx),pz=b.halfD+2.35-Math.abs(dz);
+   if(px>0&&pz>0){
+     if(px<pz)car.position.x+=Math.sign(dx||1)*px;
+     else car.position.z+=Math.sign(dz||1)*pz;
+     velocity.multiplyScalar(-.16);
+     longitudinal*=.22;
+     sideways*=.35;
+   }
+ }
  car.rotation.y=heading;
  // Basic suspension response and wheel rotation
  const bounce=Math.sin(clock.elapsedTime*18+speedAbs*.12)*Math.min(speedAbs/100,.025);
