@@ -27,8 +27,8 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x8ab9c8);scene.fog=new THREE.FogExp2(0x9bbfc6,.00145);
 const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,1800);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
-renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.35));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 document.body.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xc9efff,0x35433c,2.0));
@@ -36,7 +36,7 @@ const sun=new THREE.DirectionalLight(0xffe2bd,3.1);sun.position.set(-180,260,130
 const mat=(c,r=.8,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
 const asphalt=mat(0x252d32,.96),sidewalk=mat(0x9b9b91),concrete=mat(0xc2b9a6),glass=mat(0x315363,.24,.55),white=mat(0xe8e5d9),yellow=mat(0xe7c56a),green=mat(0x315c4a),trunk=mat(0x76543a);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(1800,1800),mat(0x6d8c78));ground.rotation.x=-Math.PI/2;ground.position.y=-.18;ground.receiveShadow=true;scene.add(ground);
-function box(w,h,d,material,x,y,z,parent=scene){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
+function box(w,h,d,material,x,y,z,parent=scene){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);o.position.set(x,y,z);o.castShadow=false;o.receiveShadow=false;parent.add(o);return o}
 function road(x,z,w,d){box(w,.12,d,asphalt,x,-.04,z);}
 // city grid: broad avenues and smaller cross streets
 for(let i=-4;i<=4;i++){
@@ -52,7 +52,7 @@ const buildingColliders=[];
 function building(x,z,w,d,h,idx){
  buildingColliders.push({x,z,halfW:w/2+1.8,halfD:d/2+2.8});
  const baseMat=mat(palettes[idx%palettes.length],.82);
- box(w,h,d,baseMat,x,h/2,z);
+ const mainBody=box(w,h,d,baseMat,x,h/2,z);mainBody.castShadow=true;
  // podium
  box(w+1,2,d+1,mat(0x777d78),x,1,z);
  // stacked horizontal floor lines
@@ -71,6 +71,7 @@ function building(x,z,w,d,h,idx){
  for(let k=0;k<3;k++)box(1.2,.5,1.2,mat(0x4d5b5d),x+w*.2+k*1.8,h+1,z-d*.2);
 }
 let seed=17;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
+async function buildCity(){
 for(let gx=-4;gx<4;gx++)for(let gz=-4;gz<4;gz++){
  const cx=gx*92+46,cz=gz*92+46;
  if(Math.abs(cx)<65&&Math.abs(cz)<65)continue;
@@ -81,6 +82,10 @@ for(let gx=-4;gx<4;gx++)for(let gz=-4;gz<4;gz++){
   building(x,z,w,d,h,Math.floor(rand()*palettes.length));
  }
 }
+ await new Promise(resolve=>setTimeout(resolve,0));
+}
+await buildCity();
+
 // waterfront promenade / blue ocean edge
 const waterMat=new THREE.MeshStandardMaterial({color:0x287d91,roughness:.24,metalness:.18});
 const water=new THREE.Mesh(new THREE.PlaneGeometry(1800,360),waterMat);water.rotation.x=-Math.PI/2;water.position.set(0,-.3,-610);scene.add(water);
