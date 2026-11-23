@@ -271,6 +271,32 @@ function decoHotel(x,z,w,d,h,paint,sign){
    const rail=new THREE.Mesh(new THREE.BoxGeometry(2.7,.12,.85),balconyMat);rail.position.set(xx,level+.75,d/2+.43);g.add(rail);
   }
  }
+ // Art Deco facade treatment: vertical fins, recessed window bays, balcony decks and side glazing.
+ // These are separate meshes, not a texture painted onto a box.
+ for(let xx=-w/2+1.4;xx<=w/2-1.4;xx+=Math.max(3.8,w/7)){
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(.42,h*.82,.55),decoTrim);
+  fin.position.set(xx,h*.48,d/2+.22);g.add(fin);
+  const finCap=new THREE.Mesh(new THREE.BoxGeometry(.9,.5,.9),decoWhite);
+  finCap.position.set(xx,h*.9,d/2+.18);g.add(finCap);
+ }
+ for(let level=7;level<h-3;level+=6.3){
+  for(let xx=-w/2+4;xx<=w/2-4;xx+=5.8){
+   const bay=new THREE.Mesh(new THREE.BoxGeometry(2.7,3,.16),glass);
+   bay.position.set(xx,level,d/2+.16);g.add(bay);
+   const balconyDeck=new THREE.Mesh(new THREE.BoxGeometry(3.5,.18,1.25),decoWhite);
+   balconyDeck.position.set(xx,level-1.65,d/2+.72);g.add(balconyDeck);
+   const balconyRail=new THREE.Mesh(new THREE.BoxGeometry(3.35,.65,.12),balconyMat);
+   balconyRail.position.set(xx,level-1.25,d/2+1.25);g.add(balconyRail);
+  }
+ }
+ for(let level=8;level<h-4;level+=8){
+  for(let zz=-d/2+4;zz<=d/2-4;zz+=6){
+   const sideBay=new THREE.Mesh(new THREE.BoxGeometry(.14,3,2.7),glass);
+   sideBay.position.set(w/2+.12,level,zz);g.add(sideBay);
+   const sideFrame=new THREE.Mesh(new THREE.BoxGeometry(.32,3.35,3.05),decoTrim);
+   sideFrame.position.set(w/2+.18,level,zz);g.add(sideFrame);
+  }
+ }
  // stepped crown and rooftop pavilion
  const crown=new THREE.Mesh(new THREE.BoxGeometry(w*.78,5,d*.78),decoWhite);crown.position.y=h+2.5;g.add(crown);
  const cap=new THREE.Mesh(new THREE.BoxGeometry(w*.52,4,d*.52),paint);cap.position.y=h+7;g.add(cap);
