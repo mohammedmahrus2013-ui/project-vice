@@ -195,6 +195,7 @@ for(let gx=-4;gx<4;gx++){for(let gz=-4;gz<4;gz++){
  if(gz%2===1){loadProgress=Math.min(88,12+((gx+4)*8+gz+1)/64*76);const bar=document.getElementById('load-progress');if(bar)bar.style.width=loadProgress+'%';const status=document.getElementById('load-status');if(status)status.textContent='BUILDING THE COASTAL DISTRICTS...';await new Promise(resolve=>requestAnimationFrame(resolve));}
  }
 }
+}
 await buildCity();
 
 // waterfront promenade / blue ocean edge
