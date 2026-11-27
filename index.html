@@ -13,6 +13,11 @@
 #speed{font-size:54px;font-weight:800;line-height:1}.unit{font-size:11px;letter-spacing:3px;color:#9ed9d7}
 #help{position:absolute;left:28px;bottom:28px;font-size:11px;line-height:1.8;color:#d4e5e5;text-shadow:0 2px 8px #000}
 #crosshair{position:absolute;left:50%;top:50%;width:4px;height:4px;border-radius:50%;background:#fff;opacity:.3}
+#modebox{position:absolute;top:24px;right:28px;text-align:right;text-shadow:0 2px 10px #000;font-size:10px;letter-spacing:2px;color:#9de9e2}
+#prompt{position:absolute;left:50%;bottom:105px;transform:translateX(-50%);padding:10px 16px;border:1px solid rgba(120,235,220,.55);background:rgba(3,12,18,.78);font-size:11px;letter-spacing:1.5px;white-space:nowrap;opacity:0;transition:opacity .2s}
+#mission{position:absolute;top:100px;left:28px;max-width:260px;padding:13px 16px;border-left:2px solid #f0a477;background:linear-gradient(90deg,rgba(4,12,18,.82),transparent);text-shadow:0 2px 8px #000}
+#mission b{display:block;font-size:10px;letter-spacing:2px;color:#f0a477;margin-bottom:7px}
+#mission span{font-size:12px;line-height:1.6;color:#e4eeee}
 
 #intro{position:fixed;inset:0;z-index:40;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 46%,#173847 0%,#09141e 48%,#03070b 100%);color:#fff;transition:opacity .8s ease,visibility .8s}
 #intro:before,#intro:after{content:"";position:absolute;width:62vmin;height:62vmin;border:1px solid rgba(105,220,215,.16);border-radius:50%;animation:introOrbit 9s linear infinite}
@@ -91,7 +96,7 @@
  });
 })();
 </script>
-<div id="hud"><div id="brand">PROJECT <span>VICE</span><div id="sub">COASTAL CITY • OPEN WORLD</div></div><div id="crosshair"></div><div id="help">W / ↑ ACCELERATE &nbsp; S / ↓ BRAKE<br>A / ← STEER &nbsp; D / → STEER<br>SPACE HANDBRAKE &nbsp; SHIFT BOOST</div><div id="speedbox"><div id="speed">000</div><div class="unit">KM/H</div></div></div>
+<div id="hud"><div id="brand">PROJECT <span>VICE</span><div id="sub">COASTAL CITY • OPEN WORLD</div></div><div id="crosshair"></div><div id="modebox">VEHICLE MODE</div><div id="mission"><b>FREE ROAM</b><span>Explore the city. Press E near your car to enter or exit.</span></div><div id="prompt">E — EXIT VEHICLE</div><div id="help">W / ↑ ACCELERATE &nbsp; S / ↓ BRAKE<br>A / ← STEER &nbsp; D / → STEER<br>SPACE HANDBRAKE &nbsp; SHIFT BOOST<br>E ENTER / EXIT VEHICLE</div><div id="speedbox"><div id="speed">000</div><div class="unit">KM/H</div></div></div>
 <div id="loading">
 <div class="load-skyline"></div>
 <div class="load-content">
@@ -340,9 +345,38 @@ for(const x of [-1,1])for(const z of [-1.55,1.55]){
 }
 const spoiler=box(2.1,.12,.45,dark,0,.62,-2.12,car);box(.12,.48,.12,dark,-.78,.38,-2.12,car);box(.12,.48,.12,dark,.78,.38,-2.12,car);
 car.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+// Original on-foot protagonist model. E switches between walking and driving.
+const player=new THREE.Group();scene.add(player);player.position.set(3,0,8);player.visible=false;
+const skin=mat(0x9b684d),shirt=mat(0x202c38),pants=mat(0x202126),shoe=mat(0x111519);
+const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.58,4,8),shirt);torso.position.y=1.08;player.add(torso);
+const headMesh=new THREE.Mesh(new THREE.SphereGeometry(.23,16,12),skin);headMesh.position.y=1.72;player.add(headMesh);
+for(const side of [-1,1]){
+ const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.48,3,7),shirt);arm.position.set(side*.42,1.12,0);arm.rotation.z=side*-.12;player.add(arm);
+ const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.14,.48,3,8),pants);leg.position.set(side*.17,.48,0);player.add(leg);
+ const foot=new THREE.Mesh(new THREE.BoxGeometry(.25,.13,.38),shoe);foot.position.set(side*.17,.12,.08);player.add(foot);
+}
+player.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+let inVehicle=true,playerHeading=0,playerVertical=0,walkSpeed=0;
+function toggleVehicle(){
+ if(inVehicle){
+  if(velocity.length()>2)return;
+  player.position.set(car.position.x+3,0,car.position.z);
+  playerHeading=heading;player.visible=true;inVehicle=false;
+  document.getElementById('modebox').textContent='ON FOOT';
+  document.getElementById('prompt').textContent='E — ENTER VEHICLE';
+  document.getElementById('help').innerHTML='W / ↑ MOVE FORWARD &nbsp; S / ↓ BACK<br>A / ← TURN &nbsp; D / → TURN<br>SHIFT SPRINT &nbsp; SPACE JUMP<br>E ENTER / EXIT VEHICLE';
+ }else{
+  if(player.position.distanceTo(car.position)>5)return;
+  player.visible=false;inVehicle=true;
+  document.getElementById('modebox').textContent='VEHICLE MODE';
+  document.getElementById('prompt').textContent='E — EXIT VEHICLE';
+  document.getElementById('help').innerHTML='W / ↑ ACCELERATE &nbsp; S / ↓ BRAKE<br>A / ← STEER &nbsp; D / → STEER<br>SPACE HANDBRAKE &nbsp; SHIFT BOOST<br>E ENTER / EXIT VEHICLE';
+ }
+}
+
 // VICE vehicle dynamics: fixed-step integration, grip, braking and handbrake drift
 const keys={};
-addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault()},{passive:false});
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE'&&!e.repeat)toggleVehicle();if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault()},{passive:false});
 addEventListener('keyup',e=>{keys[e.code]=false});
 const clock=new THREE.Clock();
 const camTarget=new THREE.Vector3(),desiredCam=new THREE.Vector3(),cameraLook=new THREE.Vector3();
@@ -351,6 +385,24 @@ let heading=0,steerAngle=0,boostHeat=0,accumulator=0;
 const FIXED_DT=1/120;
 const maxForward=boost=>boost?58:43;
 function physicsStep(dt){
+ if(!inVehicle){
+  const turn=(keys.KeyA||keys.ArrowLeft?1:0)-(keys.KeyD||keys.ArrowRight?1:0);
+  const forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
+  playerHeading+=turn*2.25*dt;
+  const pace=(keys.ShiftLeft||keys.ShiftRight)?8.2:4.8;
+  const move=new THREE.Vector3(Math.sin(playerHeading),0,Math.cos(playerHeading)).multiplyScalar(forward*pace*dt);
+  const next=player.position.clone().add(move);
+  let blocked=false;
+  for(const b of buildingColliders){if(Math.abs(next.x-b.x)<b.halfW+.45&&Math.abs(next.z-b.z)<b.halfD+.45){blocked=true;break}}
+  if(!blocked){player.position.x=next.x;player.position.z=next.z}
+  if((keys.Space)&&player.position.y<=.001)playerVertical=5.2;
+  playerVertical-=15*dt;player.position.y=Math.max(0,player.position.y+playerVertical*dt);if(player.position.y===0)playerVertical=0;
+  player.rotation.y=playerHeading;walkSpeed=Math.abs(forward)*pace;
+  player.position.x=THREE.MathUtils.clamp(player.position.x,-405,405);player.position.z=THREE.MathUtils.clamp(player.position.z,-405,405);
+  const nearCar=player.position.distanceTo(car.position)<5;
+  const prompt=document.getElementById('prompt');prompt.textContent=nearCar?'E — ENTER VEHICLE':'EXPLORE THE CITY';prompt.style.opacity=nearCar?'1':'0';
+  return;
+ }
  const throttle=(keys.KeyW||keys.ArrowUp)?1:0;
  const brake=(keys.KeyS||keys.ArrowDown)?1:0;
  const left=(keys.KeyA||keys.ArrowLeft)?1:0;
@@ -418,19 +470,23 @@ function animate(){
  let steps=0;
  while(accumulator>=FIXED_DT&&steps<8){physicsStep(FIXED_DT);accumulator-=FIXED_DT;steps++}
  if(steps===8)accumulator=0;
- const speed=velocity.length();
- const forward=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading));
- const lookAhead=THREE.MathUtils.clamp(speed*.13,2,9);
- const behind=new THREE.Vector3(-Math.sin(heading)*10,5.2+Math.min(speed*.018,1.4),-Math.cos(heading)*10);
- desiredCam.copy(car.position).add(behind);
+ const speed=inVehicle?velocity.length():walkSpeed;
+ const followTarget=inVehicle?car:player;
+ const followHeading=inVehicle?heading:playerHeading;
+ const forward=new THREE.Vector3(Math.sin(followHeading),0,Math.cos(followHeading));
+ const lookAhead=inVehicle?THREE.MathUtils.clamp(speed*.13,2,9):1.5;
+ const behind=new THREE.Vector3(-Math.sin(followHeading)*(inVehicle?10:6),inVehicle?5.2+Math.min(speed*.018,1.4):3.1,-Math.cos(followHeading)*(inVehicle?10:6));
+ desiredCam.copy(followTarget.position).add(behind);
  camera.position.lerp(desiredCam,1-Math.exp(-4.8*frameDt));
- cameraLook.copy(car.position).addScaledVector(forward,lookAhead);
- cameraLook.y=1.25;
+ cameraLook.copy(followTarget.position).addScaledVector(forward,lookAhead);
+ cameraLook.y=inVehicle?1.25:1.35;
  camTarget.lerp(cameraLook,1-Math.exp(-6*frameDt));
  camera.lookAt(camTarget);
  camera.fov=THREE.MathUtils.damp(camera.fov,66+Math.min(speed*.12,8),3,frameDt);
  camera.updateProjectionMatrix();
  document.getElementById('speed').textContent=String(Math.round(speed*3.6)).padStart(3,'0');
+ document.getElementById('modebox').textContent=inVehicle?'VEHICLE MODE':'ON FOOT';
+ if(inVehicle){const p=document.getElementById('prompt');p.textContent='E — EXIT VEHICLE';p.style.opacity='1'}
  water.position.x=Math.sin(clock.elapsedTime*.12)*2;
  renderer.render(scene,camera);
 }
